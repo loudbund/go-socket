@@ -1,24 +1,29 @@
 package main
 
 import (
-	"github.com/zj2010/go-socket/socket_v1"
+	"fmt"
+	"github.com/zhoujianstudio/go-socket/socket_v1"
 	"time"
 )
 
-// 1、结构体 -------------------------------------------------------------------------
-
-// 2、全局变量 -------------------------------------------------------------------------
-
-// 3、初始化函数 -------------------------------------------------------------------------
 var (
 	Server *socket_v1.Server
 )
 
-// 4、开放的函数 -------------------------------------------------------------------------
+// 1、处理数据,多线程转单线程处理
+func onHookEvent(Event socket_v1.HookEvent) {
+	// 事件处理在此处 ///////////////////////////////////////////////////////////////
+	switch Event.EventType {
+	case "message": // 1、消息事件
+		fmt.Println("message:", string(Event.Message.Content))
+	case "offline": // 2、下线事件
+		fmt.Println("message:", string(Event.Message.Content))
+	case "online": // 3、上线消息
+		fmt.Println("message:", string(Event.Message.Content))
+	}
+	// ////////////////////////////////////////////////////////////////////////////
+}
 
-// 5、内部函数 -------------------------------------------------------------------------
-
-// 6、主函数 -------------------------------------------------------------------------
 func main() {
 	port := 2222
 
@@ -28,30 +33,11 @@ func main() {
 	})
 
 	// 演示用: 循环发消息
-	go goTestSendMsg()
-
-	// 处理其他逻辑
-	select {}
-}
-
-// 处理数据,多线程转单线程处理
-func onHookEvent(Event socket_v1.HookEvent) {
-	// 事件处理在此处 ///////////////////////////////////////////////////////////////
-	switch Event.EventType {
-	case "message": // 1、消息事件
-	case "offline": // 2、下线事件
-	case "online": // 3、上线消息
-	}
-	// ////////////////////////////////////////////////////////////////////////////
-}
-
-// 发送数据给所有客户端
-func goTestSendMsg() {
 	for {
 		_ = Server.SendMsg(nil, socket_v1.UDataSocket{
-			Zlib:    1,
-			CType:   1000,
-			Content: []byte("hello"),
+			Zlib:    1,               // 是否压缩传输 1:压缩 0:不压缩
+			CType:   1000,            // 指令编号
+			Content: []byte("hello"), // 指令内容
 		})
 		time.Sleep(time.Second)
 	}

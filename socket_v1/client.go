@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// 1、结构体 -------------------------------------------------------------------------
+// 客户端结构体
 type Client struct {
 	socketMsg
 	ip            string // ip地址
@@ -23,13 +23,7 @@ type Client struct {
 	OnDisConnect  func(C *Client)                  // 掉线回调
 }
 
-// 2、全局变量 -------------------------------------------------------------------------
-
-// 3、初始化函数 -------------------------------------------------------------------------
-
-// 开放的函数 -------------------------------------------------------------------------
-
-// 初始化一个客户端
+// 对外函数1：初始化一个客户端
 func NewClient(ip string, port int, OnMessage func(msg UDataSocket, C *Client), OnConnectFail, OnConnect, OnDisConnect func(C *Client)) *Client {
 	return &Client{
 		ip:            ip,
@@ -46,12 +40,12 @@ func NewClient(ip string, port int, OnMessage func(msg UDataSocket, C *Client), 
 	}
 }
 
-// 连接服务器
+// 对外函数2：连接服务器
 func (Me *Client) Connect() {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", Me.ip, Me.port))
 	if err != nil {
 		fmt.Println("net.Dial error:", err)
-		Me.OnConnectFail(Me)
+		Me.OnConnectFail(Me) // 回调连接失败事件
 	} else {
 		Me.conn = conn
 		// 运行
@@ -59,45 +53,50 @@ func (Me *Client) Connect() {
 	}
 }
 
-// 消息发送
+// 对外函数3：延时后重连
+func (Me *Client) ReConnect(second int) {
+	select {
+	case <-time.After(time.Duration(second) * time.Second):
+		Me.Connect()
+	}
+}
+
+// 对外函数4：消息发送
 func (Me *Client) SendMsg(msg UDataSocket) error {
 	return sendSocketMsg(Me.conn, msg)
 }
 
-// 内部函数 -------------------------------------------------------------------------
-
-// 运行
+// 内部函数1：通讯保持
 func (Me *Client) runWaitMsg() {
 	defer func() { fmt.Println(utilDateTime(), "退出 waitMsg") }()
 	defer func() { _ = Me.conn.Close(); Me.conn = nil }()
 
-	// 心跳
+	// 1、启动心跳
 	stopHeartBeat := make(chan bool)
 	go Me.heartBeat(stopHeartBeat)
 
-	// 发送问候消息
+	// 2、发送问候消息
 	_ = sendSocketMsg(Me.conn, UDataSocket{0, 7, []byte("hello test msg from client")})
 
-	// 循环接收指令
-	Me.OnConnect(Me)
+	// 3、循环接收指令
+	Me.OnConnect(Me) // 回调连接成功事件
 	if err := Me.getSocketMsg(Me.conn, func(msg *UDataSocket) bool {
 		// 收到反馈的问候消息
 		if msg.CType == 8 {
 			fmt.Println(msg.Zlib, msg.CType, string(msg.Content))
 		}
 
-		// 回调
-		Me.OnMessage(*msg, Me)
+		Me.OnMessage(*msg, Me) // 回调收到消息事件
 		return true
 	}); err != nil {
 		stopHeartBeat <- true
 
-		Me.OnDisConnect(Me)
-		return // 退出用户运行协程
+		Me.OnDisConnect(Me) // 回调连接断开事件
+		return              // 退出用户运行协程
 	}
 }
 
-// 心跳
+// 内部函数1：心跳保持
 func (Me *Client) heartBeat(stopHeartBeat chan bool) {
 	defer func() { fmt.Println(utilDateTime(), "退出 heartBeat") }()
 
@@ -107,7 +106,7 @@ func (Me *Client) heartBeat(stopHeartBeat chan bool) {
 		case <-stopHeartBeat:
 			return
 		case <-T.C:
-			// 发送心跳
+			// 发送心跳消息，CType为1
 			if err := Me.SendMsg(UDataSocket{CType: 1}); err != nil {
 				// fmt.Println("退出心跳协程,停止发送心跳")
 				// return // 退出心跳协程,停止发送心跳

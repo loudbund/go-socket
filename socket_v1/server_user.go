@@ -7,9 +7,7 @@ import (
 	"time"
 )
 
-// 1、结构体 -------------------------------------------------------------------------
-
-// 本模块封装用结构体
+// 结构体1： 单个客户端用户结构体
 type serverUser struct {
 	socketMsg
 	ClientId string           // 客户端id(服务器给客户端分配的唯一标志)
@@ -20,13 +18,7 @@ type serverUser struct {
 	C        chan UDataSocket // 发消息channel，Server将要消息推送到channel里
 }
 
-// 2、全局变量 -------------------------------------------------------------------------
-
-// 3、初始化函数 -------------------------------------------------------------------------
-
-// 4、函数 -------------------------------------------------------------------------
-
-// 创建一个用户的API
+// 内部函数1：创建一个用户
 func newUser(conn net.Conn, server *Server) *serverUser {
 	user := &serverUser{
 		ClientId: utilUuidShort(),
@@ -41,12 +33,12 @@ func newUser(conn net.Conn, server *Server) *serverUser {
 
 // //////////////////////////////////////////////////////////////////
 
-// 启动运行
+// 内部函数2：保持连接
 func (Me *serverUser) goListenClientMsg() {
-	// 监听用户是否活跃的channel
+	// 1、监听用户是否活跃的channel
 	isLive := make(chan bool)
 
-	// 接收消息
+	// 2、接收消息
 	go func() {
 		if err := Me.getSocketMsg(Me.Conn, func(msg *UDataSocket) bool {
 			// 用户的任意消息，代表当前用户是一个活跃的
@@ -64,15 +56,15 @@ func (Me *serverUser) goListenClientMsg() {
 		}); err != nil {
 			// fmt.Println("消息接收终止，退出消息接收协程")
 			isLive <- false
-			Me.Offline()
+			Me.offline()
 		}
 	}()
 
-	// 等待心跳
+	// 3、等待心跳
 	Me.waitHeartBeet(isLive)
 }
 
-// 等待心跳
+// 内部函数3：等待心跳
 func (Me *serverUser) waitHeartBeet(isLive chan bool) {
 	// 阻塞住
 	for {
@@ -80,7 +72,7 @@ func (Me *serverUser) waitHeartBeet(isLive chan bool) {
 		case msg := <-Me.C:
 			if !reflect.DeepEqual(msg, reflect.Zero(reflect.TypeOf(msg)).Interface()) {
 				if err := sendSocketMsg(Me.Conn, msg); err != nil {
-					Me.Offline()
+					Me.offline()
 					return // 退出socket协程 // fmt.Println("消息发送失败，用户进程阻塞终止，退出用户协程")
 				}
 			}
@@ -95,17 +87,17 @@ func (Me *serverUser) waitHeartBeet(isLive chan bool) {
 			// 不做任何事情，为了激活select，更新下面的定时器
 
 		case <-time.After(time.Second * time.Duration(Me.Server.ClientHeartTimeOut)):
-			Me.Offline()
+			Me.offline()
 
 			return // runtime.Goexit() // fmt.Println("心跳过期，用户进程阻塞终止，退出用户协程")
 		}
 	}
 }
 
-// 用户的上线业务
-func (Me *serverUser) Online() {
+// 内部函数4：用户的上线业务
+func (Me *serverUser) online() {
 
-	// 用户上线,将用户加入到onlineMap中
+	// 1、用户上线,将用户加入到onlineMap中
 	Me.Server.MapLock.Lock()
 	Me.Server.OnlineMap[Me.ClientId] = Me
 	Me.Server.MapLock.Unlock()
@@ -114,10 +106,10 @@ func (Me *serverUser) Online() {
 	Me.Server.ChanHookEvent <- &HookEvent{"online", Me, UDataSocket{}}
 }
 
-// 用户的下线业务
-func (Me *serverUser) Offline() {
+// 内部函数5：用户的下线业务
+func (Me *serverUser) offline() {
 
-	// 用户下线，将用户从onlineMap里移除
+	// 1、用户下线，将用户从onlineMap里移除
 	Me.Server.MapLock.Lock()
 	if _, ok := Me.Server.OnlineMap[Me.ClientId]; ok {
 		_ = Me.Conn.Close()                      // 释放资源 - 关闭socket链接

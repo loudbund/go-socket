@@ -7,16 +7,14 @@ import (
 	"net"
 )
 
-// 1、结构体 -------------------------------------------------------------------------
-
-// 传输数据上层结构体
+// 结构体1：(外部用)传输数据上层结构体
 type UDataSocket struct {
 	Zlib    int    // 是否压缩 1:压缩
 	CType   int    // 内容类型 1:客户端请求消息 2:服务端表接口消息 4:服务端表内容数据 200:服务端发送结束
 	Content []byte // 发送内容
 }
 
-// 传输数据底层结构体
+// 结构体2：(内部用)传输数据底层结构体
 type unitDataSend struct {
 	SendFlag          int    // 消息最前面标记
 	Zlib              int    // 压缩标记 (同 UDataSocket.Zlib)
@@ -26,17 +24,16 @@ type unitDataSend struct {
 	ContentTran       []byte // 发送的内容 (同 UDataSocket.Content)
 }
 
-// 本模块封装用结构体
+// 结构体3：本模块封装用结构体
 type socketMsg struct {
 }
 
-// 2、全局变量 -------------------------------------------------------------------------
-var sendFlag = 398359203 // 消息最前面标记
+// 全局变量
+var (
+	sendFlag = 398359203 // 密码
+)
 
-// 3、初始化函数 -------------------------------------------------------------------------
-
-// 5、私有函数 -------------------------------------------------------------------------
-
+// 内部函数1：发送socket消息
 func sendSocketMsg(conn net.Conn, data UDataSocket) error {
 	if conn == nil {
 		return errors.New("发送失败:conn is nil")
@@ -77,7 +74,7 @@ func sendSocketMsg(conn net.Conn, data UDataSocket) error {
 	return nil
 }
 
-// 读取socket消息
+// 内部函数2：读取socket消息
 func (Me *socketMsg) getSocketMsg(conn net.Conn, fSuccess func(msg *UDataSocket) bool) error {
 	// 循环
 	for {
@@ -139,7 +136,7 @@ func (Me *socketMsg) getSocketMsg(conn net.Conn, fSuccess func(msg *UDataSocket)
 	return nil
 }
 
-// 读取指定长度数据
+// 内部函数3：读取指定长度数据
 func (Me *socketMsg) readSocketSizeData(conn net.Conn, length int) ([]byte, error) {
 	var retBuff []byte
 
