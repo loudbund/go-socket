@@ -12,12 +12,12 @@ import (
 // 本模块封装用结构体
 type serverUser struct {
 	socketMsg
-	ClientId string
-	Conn     net.Conn
-	Name     string
-	Addr     string
-	Server   *Server
-	C        chan UDataSocket
+	ClientId string           // 客户端id(服务器给客户端分配的唯一标志)
+	Conn     net.Conn         // 客户端连接
+	Name     string           // 客户端名称
+	Addr     string           // 客户端地址
+	Server   *Server          // Server指针，主要用来将自己加入和移除Server用户列表里
+	C        chan UDataSocket // 发消息channel，Server将要消息推送到channel里
 }
 
 // 2、全局变量 -------------------------------------------------------------------------
@@ -52,7 +52,7 @@ func (Me *serverUser) goListenClientMsg() {
 			// 用户的任意消息，代表当前用户是一个活跃的
 			isLive <- true
 
-			// 收到问号消息
+			// 收到问候的消息
 			if msg.CType == 7 {
 				fmt.Println(Me.ClientId, msg.Zlib, msg.CType, string(msg.Content))
 				_ = sendSocketMsg(Me.Conn, UDataSocket{0, 8, []byte("hello test msg from server")})
