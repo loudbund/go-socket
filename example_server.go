@@ -48,7 +48,7 @@ func onHookEvent(Event socket_v1.HookEvent) {
 // 发送数据给所有客户端
 func goTestSendMsg() {
 	for {
-		_ = Server.SendMsg(nil, socket_v1.DataUnitSocket{
+		_ = Server.SendMsg(nil, socket_v1.UDataSocket{
 			Zlib:    1,
 			CType:   1000,
 			Content: []byte("hello"),

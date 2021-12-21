@@ -1,6 +1,10 @@
 package socket_v1
 
 import (
+	"bytes"
+	"compress/zlib"
+	"encoding/binary"
+	"io"
 	"sync"
 	"time"
 )
@@ -45,4 +49,51 @@ func utilDateTime(T ...time.Time) string {
 		timeObj = T[0]
 	}
 	return timeObj.Format("2006-01-02 15:04:05")
+}
+
+// 进行zlib压缩
+func utilZLibCompress(src []byte) []byte {
+	var in bytes.Buffer
+	w := zlib.NewWriter(&in)
+	_, _ = w.Write(src)
+	_ = w.Close()
+	return in.Bytes()
+}
+
+// 进行zlib解压缩
+func utilZLibUnCompress(compressSrc []byte) []byte {
+	b := bytes.NewReader(compressSrc)
+	var out bytes.Buffer
+	r, _ := zlib.NewReader(b)
+	_, _ = io.Copy(&out, r)
+	return out.Bytes()
+}
+
+// 整形转换成字节
+func utilInt2Bytes(n int) []byte {
+	x := int32(n)
+
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	_ = binary.Write(bytesBuffer, binary.BigEndian, x)
+	return bytesBuffer.Bytes()
+}
+
+// 字节转换成整形
+func utilBytes2Int(b []byte) int {
+	bytesBuffer := bytes.NewBuffer(b)
+
+	var x int32
+	_ = binary.Read(bytesBuffer, binary.BigEndian, &x)
+
+	return int(x)
+}
+
+func utilInt64ToBytes(i int64) []byte {
+	var buf = make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(i))
+	return buf
+}
+
+func utilBytes2Int64(buf []byte) int64 {
+	return int64(binary.BigEndian.Uint64(buf))
 }

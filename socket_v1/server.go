@@ -12,19 +12,19 @@ import (
 type Server struct {
 	Ip                   string
 	Port                 int
-	OnlineMap            map[string]*SocketUser    // 在线用户的列表
-	ClientHeartTimeOut   int                 // 客户端超时时间 默认60秒
-	OnHookEvent          func(Msg HookEvent) // hook回调消息
-	ChanHookEvent        chan *HookEvent     // 所有消息，各个子连接传过来的
-	chanBroadCastMessage chan DataUnitSocket // 消息广播的channel
-	MapLock              sync.RWMutex        // 同步锁
+	OnlineMap            map[string]*serverUser // 在线用户的列表
+	ClientHeartTimeOut   int                    // 客户端超时时间 默认60秒
+	OnHookEvent          func(Msg HookEvent)    // hook回调消息
+	ChanHookEvent        chan *HookEvent        // 所有消息，各个子连接传过来的
+	chanBroadCastMessage chan UDataSocket       // 消息广播的channel
+	MapLock              sync.RWMutex           // 同步锁
 }
 
 //
 type HookEvent struct {
 	EventType string // 事件类型 online / offline / message
-	User      *SocketUser
-	Message   DataUnitSocket
+	User      *serverUser
+	Message   UDataSocket
 }
 
 // 2、全局变量 -------------------------------------------------------------------------
@@ -36,9 +36,9 @@ func NewServer(ip string, port int, OnHookEvent func(Msg HookEvent)) *Server {
 	server := &Server{
 		Ip:                   ip,
 		Port:                 port,
-		OnlineMap:            make(map[string]*SocketUser),
+		OnlineMap:            make(map[string]*serverUser),
 		ClientHeartTimeOut:   60 * 3,
-		chanBroadCastMessage: make(chan DataUnitSocket),
+		chanBroadCastMessage: make(chan UDataSocket),
 		ChanHookEvent:        make(chan *HookEvent),
 		OnHookEvent:          OnHookEvent,
 	}
@@ -47,7 +47,7 @@ func NewServer(ip string, port int, OnHookEvent func(Msg HookEvent)) *Server {
 }
 
 // 消息发送
-func (Me *Server) SendMsg(ClientId *string, Msg DataUnitSocket) error {
+func (Me *Server) SendMsg(ClientId *string, Msg UDataSocket) error {
 	if ClientId == nil {
 		// 将msg发送给全部的在线User
 		Me.MapLock.Lock()
@@ -59,7 +59,7 @@ func (Me *Server) SendMsg(ClientId *string, Msg DataUnitSocket) error {
 		return nil
 	} else {
 		if user, ok := Me.OnlineMap[*ClientId]; ok {
-			return user.SendSocketMsg(user.Conn, Msg)
+			return sendSocketMsg(user.Conn, Msg)
 		} else {
 			return errors.New("用户不在线")
 		}
@@ -95,7 +95,7 @@ func (Me *Server) goWaitNewClient() {
 // 处理客户端连接
 func (Me *Server) goWelcomeNewClient(conn net.Conn) {
 	// 新用户来了
-	user := NewUser(conn, Me)
+	user := newUser(conn, Me)
 	user.Online()
 	fmt.Println("链接建立成功", user.ClientId, " 当前用户:", len(Me.OnlineMap))
 
