@@ -45,7 +45,7 @@ func onHookEvent(Event socket_v1.HookEvent) {
 // 发送数据给所有客户端
 func goTestSendMsg() {
 	for {
-		_ = Server.SendMsg(nil, socket_v1.DataUnitSocket{
+		_ = Server.SendMsg(nil, socket_v1.UDataSocket{
 			Zlib:    1,
 			CType:   1000,
 			Content: []byte("hello"),
@@ -69,7 +69,7 @@ import (
 
 func main() {
 	// 创建客户端连接
-	C := socket_v1.NewClient("127.0.0.1", 3333, func(Msg socket_v1.DataUnitSocket, C *socket_v1.Client) {
+	C := socket_v1.NewClient("127.0.0.1", 3333, func(Msg socket_v1.UDataSocket, C *socket_v1.Client) {
 
 		// 回调1：收到了消息，这里处理消息 ///////////////////////////////////////////
 		onMsg(Msg)
@@ -108,7 +108,7 @@ func main() {
 }
 
 // 收到日志消息
-func onMsg(Msg socket_v1.DataUnitSocket) {
+func onMsg(Msg socket_v1.UDataSocket) {
 	fmt.Println(Msg.CType, string(Msg.Content))
 }
 ```
