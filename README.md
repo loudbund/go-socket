@@ -23,10 +23,10 @@ func main() {
 	Server = socket_v1.NewServer("0.0.0.0", 3333, func(Event socket_v1.HookEvent) {
 		onHookEvent(Event)
 	})
-
+	
 	// 演示用: 循环发消息
 	go goTestSendMsg()
-
+	
 	// 处理其他逻辑
 	select {}
 }
@@ -70,39 +70,39 @@ import (
 func main() {
 	// 创建客户端连接
 	C := socket_v1.NewClient("127.0.0.1", 3333, func(Msg socket_v1.UDataSocket, C *socket_v1.Client) {
-
+		
 		// 回调1：收到了消息，这里处理消息 ///////////////////////////////////////////
 		onMsg(Msg)
 		// ///////////////////////////////////////////
-
+		
 	}, func(C *socket_v1.Client) {
-
+		
 		// 回调2：连接失败回调
-
+		
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "连接失败！5秒后重连")
 		go func() {
 			time.Sleep(time.Second * 5)
 			C.Connect()
 		}()
-
+		
 	}, func(C *socket_v1.Client) {
-
+		
 		// 回调3：连接成功回调
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "连接成功！")
-
+		
 	}, func(C *socket_v1.Client) {
-
+		
 		// 回调4：掉线回调
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "掉线了,5秒后重连")
-
+		
 		go func() {
 			time.Sleep(time.Second * 5)
 			C.Connect()
 		}()
-
+		
 	})
 	go C.Connect()
-
+	
 	// 处理其他逻辑
 	select {}
 }
