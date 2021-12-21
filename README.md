@@ -54,7 +54,6 @@ func goTestSendMsg() {
 	}
 }
 
-
 ```
 
 #### 客户端示例
