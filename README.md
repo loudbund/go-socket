@@ -53,7 +53,6 @@ func goTestSendMsg() {
 		time.Sleep(time.Second)
 	}
 }
-
 ```
 
 #### 客户端示例
