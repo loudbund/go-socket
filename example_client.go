@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/zhoujianstudio/go-socket/socket_v1"
+	"github.com/loudbund/go-socket/socket_v1"
 	"time"
 )
 
