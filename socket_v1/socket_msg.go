@@ -28,10 +28,15 @@ type unitDataSend struct {
 type socketMsg struct {
 }
 
-// 全局变量
+// 全局变量1：密码
 var (
-	sendFlag = 398359203 // 密码
+	sendFlag = 398359203
 )
+
+// 设置函数： 密码设置，服务端和客户端需要约定好；不设置则使用默认的
+func SetSendFlag(Flag int){
+	sendFlag= Flag
+}
 
 // 内部函数1：发送socket消息
 func sendSocketMsg(conn net.Conn, data UDataSocket) error {

@@ -48,14 +48,14 @@ func (Me *Server) SendMsg(ClientId *string, Msg UDataSocket) error {
 		// 将msg发送给全部的在线User
 		Me.MapLock.Lock()
 		for _, cli := range Me.OnlineMap {
-			cli.C <- Msg
+			cli.c <- Msg
 		}
 		Me.MapLock.Unlock()
 
 		return nil
 	} else {
 		if user, ok := Me.OnlineMap[*ClientId]; ok {
-			return sendSocketMsg(user.Conn, Msg)
+			return sendSocketMsg(user.conn, Msg)
 		} else {
 			return errors.New("用户不在线")
 		}

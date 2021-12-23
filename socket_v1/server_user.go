@@ -11,22 +11,21 @@ import (
 type serverUser struct {
 	socketMsg
 	ClientId string           // 客户端id(服务器给客户端分配的唯一标志)
-	Conn     net.Conn         // 客户端连接
-	Name     string           // 客户端名称
-	Addr     string           // 客户端地址
-	Server   *Server          // Server指针，主要用来将自己加入和移除Server用户列表里
-	C        chan UDataSocket // 发消息channel，Server将要消息推送到channel里
+	Addr     string           // 客户端地址,ip和port
+	
+	conn     net.Conn         // 客户端连接
+	server   *Server          // Server指针，主要用来将自己加入和移除Server用户列表里
+	c        chan UDataSocket // 发消息channel，Server将要消息推送到channel里
 }
 
 // 内部函数1：创建一个用户
 func newUser(conn net.Conn, server *Server) *serverUser {
 	user := &serverUser{
 		ClientId: utilUuidShort(),
-		Conn:     conn,
-		Name:     conn.RemoteAddr().String(),
+		conn:     conn,
 		Addr:     conn.RemoteAddr().String(),
-		Server:   server,
-		C:        make(chan UDataSocket, 10),
+		server:   server,
+		c:        make(chan UDataSocket, 10),
 	}
 	return user
 }
@@ -40,18 +39,18 @@ func (Me *serverUser) goListenClientMsg() {
 
 	// 2、接收消息
 	go func() {
-		if err := Me.getSocketMsg(Me.Conn, func(msg *UDataSocket) bool {
+		if err := Me.getSocketMsg(Me.conn, func(msg *UDataSocket) bool {
 			// 用户的任意消息，代表当前用户是一个活跃的
 			isLive <- true
 
 			// 收到问候的消息
 			if msg.CType == 7 {
 				fmt.Println(Me.ClientId, msg.Zlib, msg.CType, string(msg.Content))
-				_ = sendSocketMsg(Me.Conn, UDataSocket{0, 8, []byte("hello test msg from server")})
+				_ = sendSocketMsg(Me.conn, UDataSocket{0, 8, []byte("hello test msg from server")})
 			}
 
 			// 3、消息发给主进程
-			Me.Server.ChanHookEvent <- &HookEvent{"message", Me, *msg}
+			Me.server.ChanHookEvent <- &HookEvent{"message", Me, *msg}
 			return true
 		}); err != nil {
 			// fmt.Println("消息接收终止，退出消息接收协程")
@@ -69,9 +68,9 @@ func (Me *serverUser) waitHeartBeet(isLive chan bool) {
 	// 阻塞住
 	for {
 		select {
-		case msg := <-Me.C:
+		case msg := <-Me.c:
 			if !reflect.DeepEqual(msg, reflect.Zero(reflect.TypeOf(msg)).Interface()) {
-				if err := sendSocketMsg(Me.Conn, msg); err != nil {
+				if err := sendSocketMsg(Me.conn, msg); err != nil {
 					Me.offline()
 					return // 退出socket协程 // fmt.Println("消息发送失败，用户进程阻塞终止，退出用户协程")
 				}
@@ -81,12 +80,12 @@ func (Me *serverUser) waitHeartBeet(isLive chan bool) {
 			if !live || !ok { // fmt.Println("收到掉线通知，用户进程阻塞终止，退出用户协程")
 				return
 			}
-			_ = Me.Conn.SetDeadline(time.Now().Add(time.Duration(Me.Server.ClientHeartTimeOut) * time.Second))
+			_ = Me.conn.SetDeadline(time.Now().Add(time.Duration(Me.server.ClientHeartTimeOut) * time.Second))
 
 			// 当前用户是活跃的，应该重置定时器
 			// 不做任何事情，为了激活select，更新下面的定时器
 
-		case <-time.After(time.Second * time.Duration(Me.Server.ClientHeartTimeOut)):
+		case <-time.After(time.Second * time.Duration(Me.server.ClientHeartTimeOut)):
 			Me.offline()
 
 			return // runtime.Goexit() // fmt.Println("心跳过期，用户进程阻塞终止，退出用户协程")
@@ -98,27 +97,27 @@ func (Me *serverUser) waitHeartBeet(isLive chan bool) {
 func (Me *serverUser) online() {
 
 	// 1、用户上线,将用户加入到onlineMap中
-	Me.Server.MapLock.Lock()
-	Me.Server.OnlineMap[Me.ClientId] = Me
-	Me.Server.MapLock.Unlock()
+	Me.server.MapLock.Lock()
+	Me.server.OnlineMap[Me.ClientId] = Me
+	Me.server.MapLock.Unlock()
 
 	// 2、事件发给server
-	Me.Server.ChanHookEvent <- &HookEvent{"online", Me, UDataSocket{}}
+	Me.server.ChanHookEvent <- &HookEvent{"online", Me, UDataSocket{}}
 }
 
 // 内部函数5：用户的下线业务
 func (Me *serverUser) offline() {
 
 	// 1、用户下线，将用户从onlineMap里移除
-	Me.Server.MapLock.Lock()
-	if _, ok := Me.Server.OnlineMap[Me.ClientId]; ok {
-		_ = Me.Conn.Close()                      // 释放资源 - 关闭socket链接
-		close(Me.C)                              // 释放资源 - 销毁用的资源
-		delete(Me.Server.OnlineMap, Me.ClientId) // 移除用户
-		fmt.Println(Me.Name, "退出成功", "当前在线", len(Me.Server.OnlineMap))
+	Me.server.MapLock.Lock()
+	if _, ok := Me.server.OnlineMap[Me.ClientId]; ok {
+		_ = Me.conn.Close()                      // 释放资源 - 关闭socket链接
+		close(Me.c)                              // 释放资源 - 销毁用的资源
+		delete(Me.server.OnlineMap, Me.ClientId) // 移除用户
+		fmt.Println(Me.ClientId, "退出成功", "当前在线", len(Me.server.OnlineMap))
 	}
-	Me.Server.MapLock.Unlock()
+	Me.server.MapLock.Unlock()
 
 	// 2、事件发给server
-	Me.Server.ChanHookEvent <- &HookEvent{"offline", Me, UDataSocket{}}
+	Me.server.ChanHookEvent <- &HookEvent{"offline", Me, UDataSocket{}}
 }
