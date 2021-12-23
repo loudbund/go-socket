@@ -19,16 +19,6 @@ type UDataSocket struct {
 	CType   int    // 内容类型 1:客户端请求消息 2:服务端表接口消息 4:服务端表内容数据 200:服务端发送结束
 	Content []byte // 发送内容
 }
-
-// 结构体2：(内部用)传输数据底层结构体
-type unitDataSend struct {
-	SendFlag          int    // 消息最前面标记
-	Zlib              int    // 压缩标记 (同 UDataSocket.Zlib)
-	CType             int    // 内容类型 (同 UDataSocket.CType)
-	ContentLength     int    // 原内容大小
-	ContentTranLength int    // 发送内容大小
-	ContentTran       []byte // 发送的内容 (同 UDataSocket.Content)
-}
 ```
 ## 传输协议
 数据传输也是按这个顺序组装的
