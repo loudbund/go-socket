@@ -10,12 +10,12 @@ import (
 // 结构体1： 单个客户端用户结构体
 type serverUser struct {
 	socketMsg
-	ClientId string           // 客户端id(服务器给客户端分配的唯一标志)
-	Addr     string           // 客户端地址,ip和port
-	
-	conn     net.Conn         // 客户端连接
-	server   *Server          // Server指针，主要用来将自己加入和移除Server用户列表里
-	c        chan UDataSocket // 发消息channel，Server将要消息推送到channel里
+	ClientId string // 客户端id(服务器给客户端分配的唯一标志)
+	Addr     string // 客户端地址,ip和port
+
+	conn   net.Conn         // 客户端连接
+	server *Server          // Server指针，主要用来将自己加入和移除Server用户列表里
+	c      chan UDataSocket // 发消息channel，Server将要消息推送到channel里
 }
 
 // 内部函数1：创建一个用户
@@ -97,9 +97,9 @@ func (Me *serverUser) waitHeartBeet(isLive chan bool) {
 func (Me *serverUser) online() {
 
 	// 1、用户上线,将用户加入到onlineMap中
-	Me.server.MapLock.Lock()
-	Me.server.OnlineMap[Me.ClientId] = Me
-	Me.server.MapLock.Unlock()
+	Me.server.onlineMapLock.Lock()
+	Me.server.onlineMap[Me.ClientId] = Me
+	Me.server.onlineMapLock.Unlock()
 
 	// 2、事件发给server
 	Me.server.ChanHookEvent <- &HookEvent{"online", Me, UDataSocket{}}
@@ -109,14 +109,14 @@ func (Me *serverUser) online() {
 func (Me *serverUser) offline() {
 
 	// 1、用户下线，将用户从onlineMap里移除
-	Me.server.MapLock.Lock()
-	if _, ok := Me.server.OnlineMap[Me.ClientId]; ok {
+	Me.server.onlineMapLock.Lock()
+	if _, ok := Me.server.onlineMap[Me.ClientId]; ok {
 		_ = Me.conn.Close()                      // 释放资源 - 关闭socket链接
 		close(Me.c)                              // 释放资源 - 销毁用的资源
-		delete(Me.server.OnlineMap, Me.ClientId) // 移除用户
-		fmt.Println(Me.ClientId, "退出成功", "当前在线", len(Me.server.OnlineMap))
+		delete(Me.server.onlineMap, Me.ClientId) // 移除用户
+		fmt.Println(Me.ClientId, "退出成功", "当前在线", len(Me.server.onlineMap))
 	}
-	Me.server.MapLock.Unlock()
+	Me.server.onlineMapLock.Unlock()
 
 	// 2、事件发给server
 	Me.server.ChanHookEvent <- &HookEvent{"offline", Me, UDataSocket{}}

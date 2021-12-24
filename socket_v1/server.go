@@ -12,12 +12,12 @@ import (
 type Server struct {
 	Ip                   string
 	Port                 int
-	OnlineMap            map[string]*serverUser // 在线用户的列表
 	ClientHeartTimeOut   int                    // 客户端超时时间 默认60秒
 	OnHookEvent          func(Msg HookEvent)    // hook回调消息
 	ChanHookEvent        chan *HookEvent        // 所有消息，各个子连接传过来的
 	chanBroadCastMessage chan UDataSocket       // 消息广播的channel
-	MapLock              sync.RWMutex           // 同步锁
+	onlineMap            map[string]*serverUser // 在线用户的列表
+	onlineMapLock        sync.RWMutex           // 同步锁
 }
 
 // 结构体2：hook消息结构体
@@ -32,7 +32,7 @@ func NewServer(ip string, port int, OnHookEvent func(Msg HookEvent)) *Server {
 	server := &Server{
 		Ip:                   ip,
 		Port:                 port,
-		OnlineMap:            make(map[string]*serverUser),
+		onlineMap:            make(map[string]*serverUser),
 		ClientHeartTimeOut:   60 * 3,
 		chanBroadCastMessage: make(chan UDataSocket),
 		ChanHookEvent:        make(chan *HookEvent),
@@ -46,15 +46,19 @@ func NewServer(ip string, port int, OnHookEvent func(Msg HookEvent)) *Server {
 func (Me *Server) SendMsg(ClientId *string, Msg UDataSocket) error {
 	if ClientId == nil {
 		// 将msg发送给全部的在线User
-		Me.MapLock.Lock()
-		for _, cli := range Me.OnlineMap {
+		Me.onlineMapLock.Lock()
+		for _, cli := range Me.onlineMap {
 			cli.c <- Msg
 		}
-		Me.MapLock.Unlock()
+		Me.onlineMapLock.Unlock()
 
 		return nil
 	} else {
-		if user, ok := Me.OnlineMap[*ClientId]; ok {
+		Me.onlineMapLock.Lock()
+		user, ok := Me.onlineMap[*ClientId]
+		Me.onlineMapLock.Unlock()
+
+		if ok {
 			return sendSocketMsg(user.conn, Msg)
 		} else {
 			return errors.New("用户不在线")
@@ -91,7 +95,7 @@ func (Me *Server) goWelcomeNewClient(conn net.Conn) {
 	// 新用户来了
 	user := newUser(conn, Me)
 	user.online()
-	fmt.Println("链接建立成功", user.ClientId, " 当前用户:", len(Me.OnlineMap))
+	fmt.Println("链接建立成功", user.ClientId, " 当前用户:", len(Me.onlineMap))
 
 	user.goListenClientMsg()
 	// fmt.Println("用户守护进程已退出！")
