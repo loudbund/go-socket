@@ -66,6 +66,11 @@ func (Me *Client) SendMsg(msg UDataSocket) error {
 	return sendSocketMsg(Me.conn, msg)
 }
 
+// 对外函数5：主动断开连接
+func (Me *Client) DisConnect() {
+	_ = Me.conn.Close()
+}
+
 // 内部函数1：通讯保持
 func (Me *Client) runWaitMsg() {
 	defer func() { fmt.Println(utilDateTime(), "退出 waitMsg") }()

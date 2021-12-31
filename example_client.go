@@ -43,5 +43,12 @@ func main() {
 	go Client.Connect()
 
 	// 处理其他逻辑
-	select {}
+	for {
+		select {
+		// 10秒后模拟断开连接
+		case <-time.After(time.Second * 10):
+			fmt.Println("手动断开连接")
+			Client.DisConnect()
+		}
+	}
 }
