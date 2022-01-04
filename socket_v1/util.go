@@ -56,6 +56,9 @@ func utilZLibCompress(src []byte) []byte {
 
 // 进行zlib解压缩
 func utilZLibUnCompress(compressSrc []byte) []byte {
+	if len(compressSrc) == 0 {
+		return []byte{}
+	}
 	b := bytes.NewReader(compressSrc)
 	var out bytes.Buffer
 	r, _ := zlib.NewReader(b)
