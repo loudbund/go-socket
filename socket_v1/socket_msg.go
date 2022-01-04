@@ -34,8 +34,8 @@ var (
 )
 
 // 设置函数： 密码设置，服务端和客户端需要约定好；不设置则使用默认的
-func SetSendFlag(Flag int){
-	sendFlag= Flag
+func SetSendFlag(Flag int) {
+	sendFlag = Flag
 }
 
 // 内部函数1：发送socket消息
@@ -121,6 +121,7 @@ func (Me *socketMsg) getSocketMsg(conn net.Conn, fSuccess func(msg *UDataSocket)
 		// 传输数据体校验
 		if revData.ContentTranLength != len(revData.ContentTran) {
 			fmt.Println("传输内容长度校验失败")
+			return errors.New("传输内容长度校验失败")
 		}
 
 		// 内容数据解压处理
@@ -131,6 +132,7 @@ func (Me *socketMsg) getSocketMsg(conn net.Conn, fSuccess func(msg *UDataSocket)
 		// 校验原始内容长度
 		if revData.ContentLength != len(content) {
 			fmt.Println("内容长度校验失败")
+			return errors.New("内容长度校验失败")
 		}
 		// 回调
 		continueRead := fSuccess(&UDataSocket{revData.Zlib, revData.CType, content})
