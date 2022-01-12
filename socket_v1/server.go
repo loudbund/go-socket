@@ -59,7 +59,11 @@ func (Me *Server) SendMsg(ClientId *string, Msg UDataSocket) error {
 		Me.onlineMapLock.Unlock()
 
 		if ok {
-			return sendSocketMsg(user.conn, Msg)
+			if err := sendSocketMsg(user.conn, Msg); err != nil {
+				user.offline()
+				return err
+			}
+			return nil
 		} else {
 			return errors.New("用户不在线")
 		}
