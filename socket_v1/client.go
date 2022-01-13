@@ -1,6 +1,5 @@
 package socket_v1
 
-import "C"
 import (
 	"fmt"
 	"net"
