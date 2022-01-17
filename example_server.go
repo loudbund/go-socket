@@ -31,6 +31,7 @@ func main() {
 	Server = socket_v1.NewServer("0.0.0.0", port, func(Event socket_v1.HookEvent) {
 		onHookEvent(Event)
 	})
+	Server.Set("SendFlag", 123)
 
 	// 演示用: 循环发消息
 	for {

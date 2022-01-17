@@ -36,10 +36,18 @@ func NewClient(ip string, port int, OnMessage func(msg UDataSocket, C *Client), 
 		OnConnect:     OnConnect,
 		OnConnectFail: OnConnectFail,
 		OnDisConnect:  OnDisConnect,
+		socketMsg:     socketMsg{SendFlag: 398359203},
 	}
 }
 
 // 对外函数2：连接服务器
+func (Me *Client) Set(opt string, value interface{}) {
+	if opt == "SendFlag" {
+		Me.SendFlag = value.(int)
+	}
+}
+
+// 对外函数3：连接服务器
 func (Me *Client) Connect() {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", Me.ip, Me.port))
 	if err != nil {
@@ -60,12 +68,12 @@ func (Me *Client) ReConnect(second int) {
 	}
 }
 
-// 对外函数4：消息发送
+// 对外函数5：消息发送
 func (Me *Client) SendMsg(msg UDataSocket) error {
-	return sendSocketMsg(Me.conn, msg)
+	return Me.sendSocketMsg(Me.conn, msg)
 }
 
-// 对外函数5：主动断开连接
+// 对外函数6：主动断开连接
 func (Me *Client) DisConnect() {
 	_ = Me.conn.Close()
 }
@@ -80,7 +88,7 @@ func (Me *Client) runWaitMsg() {
 	go Me.heartBeat(stopHeartBeat)
 
 	// 2、发送问候消息
-	_ = sendSocketMsg(Me.conn, UDataSocket{0, 7, []byte("hello test msg from client")})
+	_ = Me.sendSocketMsg(Me.conn, UDataSocket{0, 7, []byte("hello test msg from client")})
 
 	// 3、循环接收指令
 	Me.OnConnect(Me) // 回调连接成功事件

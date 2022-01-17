@@ -26,20 +26,11 @@ type unitDataSend struct {
 
 // 结构体3：本模块封装用结构体
 type socketMsg struct {
-}
-
-// 全局变量1：密码
-var (
-	sendFlag = 398359203
-)
-
-// 设置函数： 密码设置，服务端和客户端需要约定好；不设置则使用默认的
-func SetSendFlag(Flag int) {
-	sendFlag = Flag
+	SendFlag int
 }
 
 // 内部函数1：发送socket消息
-func sendSocketMsg(conn net.Conn, data UDataSocket) error {
+func (Me *socketMsg) sendSocketMsg(conn net.Conn, data UDataSocket) error {
 	if conn == nil {
 		return errors.New("发送失败:conn is nil")
 	}
@@ -53,7 +44,7 @@ func sendSocketMsg(conn net.Conn, data UDataSocket) error {
 
 	// 整合传输数据体
 	sendData := unitDataSend{
-		SendFlag:          sendFlag,
+		SendFlag:          Me.SendFlag,
 		Zlib:              data.Zlib,
 		CType:             data.CType,
 		ContentLength:     len(data.Content),
@@ -92,7 +83,7 @@ func (Me *socketMsg) getSocketMsg(conn net.Conn, fSuccess func(msg *UDataSocket)
 		revSendFlag := utilBytes2Int(buffHeader[0:4])
 		revZlib := utilBytes2Int(buffHeader[4:8])
 		revCType := utilBytes2Int(buffHeader[8:12])
-		if revSendFlag != sendFlag {
+		if revSendFlag != Me.SendFlag {
 			fmt.Println("传输码校验失败")
 			return errors.New("传输码校验失败")
 		}

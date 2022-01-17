@@ -40,6 +40,7 @@ func main() {
 
 	// 创建客户端连接
 	Client := socket_v1.NewClient(serverIp, serverPort, OnMessage, OnConnectFail, OnConnect, OnDisConnect)
+	Client.Set("SendFlag", 123)
 	go Client.Connect()
 
 	// 处理其他逻辑
